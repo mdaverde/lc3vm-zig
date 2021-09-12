@@ -63,9 +63,9 @@ test "signExtend" {
     try std.testing.expectEqual(signExtend(one, 3), 1);
     try std.testing.expectEqual(signExtend(one, 1), 0xFFFF);
 
-    const neg_eight: i16 = -8;
-    const unsized_neg_eight = @bitCast(u16, neg_eight);
-    try std.testing.expectEqual(signExtend(unsized_neg_eight, 2), 65528);
+    const neg_eight: i5 = -8;
+    const neg_eight_u16: u16 = @as(u16, @bitCast(u5, neg_eight));
+    try std.testing.expectEqual(signExtend(neg_eight_u16, 4), 0xFFF8);
 }
 
 fn resetRegisters() void {
@@ -154,6 +154,27 @@ test "addOp" {
     const expected_three = [_]u16{65525, 0, 0, 0, 0, 41};
     try std.testing.expectEqualSlices(u16, expected_three[0..], reg[0..6]);
     try std.testing.expectEqual(reg[Registers.R_COND.val()], ConditionFlags.FL_NEG.val());
+}
+
+fn memRead(addr: u16) u16 {
+    return addr;
+}
+
+fn ldiOp(instruction: u16) void {
+    const destination_register = instruction >> 9 & 0b111;
+    const pc_offset9: u16 = signExtend(instruction & 0x1FF, 9);
+    const pc: u16 = reg[Registers.R_PC.val()];
+    reg[destination_register] = memRead(memRead(pc_offset9 + pc));
+    updateFlags(destination_register);
+}
+
+test "ldiOp" {
+    resetRegisters();
+
+    // LDI op to register 3 from pc_offset9 010010010
+    const instruction_one = 0b1010011010010010;
+    ldiOp(instruction_one);
+    try std.testing.expectEqual(@as(u16, 0b010010010), reg[Registers.R_R3.val()]);
 }
 
 pub fn main() void {

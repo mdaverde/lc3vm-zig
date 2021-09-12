@@ -7,3 +7,7 @@
 ## Instruction Set Architecture (ISA)
 
 The specification for the ISA can be found [here](https://justinmeiners.github.io/lc3-vm/supplies/lc3-isa.pdf)
+
+## References
+
+For original inspiration, see [lc3-vm](https://github.com/justinmeiners/lc3-vm)
