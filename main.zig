@@ -101,9 +101,45 @@ test "updateFlags" {
     resetRegisters();
     const expected = [_]u16{0} ** 10;
     try std.testing.expectEqualSlices(u16, expected[0..], reg[0..]);
-    reg[@enumToInt(Registers.R_R0)] = signExtend(@bitCast(u16, @as(i16, -1)), 1);
+    reg[Registers.R_R0.val()] = signExtend(@bitCast(u16, @as(i16, -1)), 1);
     updateFlags(Registers.R_R0);
-    try std.testing.expectEqual(reg[@enumToInt(Registers.R_COND)], @enumToInt(ConditionFlags.FL_NEG));
+    try std.testing.expectEqual(reg[Registers.R_COND.val()], ConditionFlags.FL_NEG.val());
+}
+
+fn addOp(instruction: u16) void {
+    const destination_register: u16 = (instruction >> 9) & 0b111;
+    const first_operand_register: u16 = (instruction >> 6) & 0b111;
+    const imm_mode: u16 = (instruction >> 5) & 1;
+    if (imm_mode == 0) {
+        const second_operand_register: u16 = instruction & 0b111;
+        const sum: u16 = reg[first_operand_register] + reg[second_operand_register];
+        reg[destination_register] = sum;
+    } else {
+        // imm mode
+        const imm_operand: u16 = instruction & 0b11111;
+        const sum: u16 = reg[first_operand_register] + imm_operand;
+        reg[destination_register] = sum;
+    }
+}
+
+test "addOp" {
+    resetRegisters();
+    reg[1] = 8;
+    reg[2] = 5;
+    // Add these 2 registers and save to register 0
+    const instruction_one: u16 = 0b0001000001000010;
+    addOp(instruction_one);
+    const expected_one = [_]u16{13, 8, 5};
+    try std.testing.expectEqualSlices(u16, expected_one[0..], reg[0..3]);
+
+    resetRegisters();
+    reg[4] = 50;
+    reg[6] = 32;
+    // Save the sum to register 7
+    const instruction_two: u16 = 0b0001111100000110;
+    addOp(instruction_two);
+    const expected_two = [_]u16{50, 0, 32, 82};
+    try std.testing.expectEqualSlices(u16, expected_two[0..], reg[4..8]);
 }
 
 pub fn main() void {
