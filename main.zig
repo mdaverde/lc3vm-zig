@@ -238,12 +238,23 @@ test "brOp" {
     try std.testing.expectEqual(@as(u16, 0b000010000), reg[Registers.R_PC.val()]);
 }
 
+fn rtiOp(_: u16) void {
+    std.os.abort();
+}
+
+fn resOp(_: u16) void {
+    std.os.abort();
+}
+
+// Also handles RET
+fn jmpOp(instr: u16) void {
+
+}
 
 pub fn main() void {
     // const PC_START = 0x3000;
 
     // var running: bool = true;
-
     std.debug.print("{e}\n", .{ ConditionFlags.FL_ZRO });
     // const rl = reg.len;
     memory[1] = 12;
