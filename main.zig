@@ -156,6 +156,7 @@ test "addOp" {
     try std.testing.expectEqual(reg[Registers.R_COND.val()], ConditionFlags.FL_NEG.val());
 }
 
+// TBD
 fn memRead(addr: u16) u16 {
     return addr;
 }
@@ -175,6 +176,34 @@ test "ldiOp" {
     const instruction_one = 0b1010011010010010;
     ldiOp(instruction_one);
     try std.testing.expectEqual(@as(u16, 0b010010010), reg[Registers.R_R3.val()]);
+}
+
+fn andOp(instruction: u16) void {
+    const destination_register = instruction >> 9 & 0b111;
+    const source_register_1 = instruction >> 6 & 0b111;
+    const imm_mode = instruction >> 5 & 1;
+
+    if (imm_mode == 0) {
+        const source_register_2 = instruction & 0b111;
+        reg[destination_register] = reg[source_register_1] & reg[source_register_2];
+    } else {
+        // imm_mode
+        const imm_value = signExtend(instruction & 0x1F, 5);
+        reg[destination_register] = reg[source_register_1] & imm_value;
+    }
+
+    updateFlags(destination_register);
+}
+
+test "andOp" {
+    resetRegisters();
+
+    // reg 3 = reg 2 AND reg 1
+    const test_instruction1 = 0b0101011010000001;
+    reg[Registers.R_R2.val()] = 0b011;
+    reg[Registers.R_R1.val()] = 0b110;
+    andOp(test_instruction1);
+    try std.testing.expectEqual(@as(u16, 0b010), reg[Registers.R_R3.val()]);
 }
 
 pub fn main() void {
