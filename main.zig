@@ -204,7 +204,40 @@ test "andOp" {
     reg[Registers.R_R1.val()] = 0b110;
     andOp(test_instruction1);
     try std.testing.expectEqual(@as(u16, 0b010), reg[Registers.R_R3.val()]);
+
+    resetRegisters();
+    // reg 0 = reg 1 AND 10101;
+    const test_instruction2 = 0b0101000001110101;
+    reg[Registers.R_R1.val()] = 60000;
+    andOp(test_instruction2);
+    try std.testing.expectEqual(@as(u16, 0b1110101001100000), reg[Registers.R_R0.val()]);
 }
+
+fn brOp(instr: u16) void {
+    const negative_conditional = instr >> 11 & 1;
+    const zero_conditional = instr >> 10 & 1;
+    const positive_conditional = instr >> 9 & 1;
+    const last_instruction_flag = reg[Registers.R_COND.val()];
+
+    const is_negative = (negative_conditional == 1) and (last_instruction_flag == ConditionFlags.FL_NEG.val());
+    const is_zero = (zero_conditional == 1) and (last_instruction_flag == ConditionFlags.FL_ZRO.val());
+    const is_positive = (positive_conditional == 1) and (last_instruction_flag == ConditionFlags.FL_POS.val());
+
+    if (is_negative or is_zero or is_positive) {
+        const pc_offset9 = instr & 0x1FF;
+        reg[Registers.R_PC.val()] = reg[Registers.R_PC.val()] + signExtend(pc_offset9, 9);
+    }
+}
+
+test "brOp" {
+    resetRegisters();
+
+    const test_instruction1 = 0b0000010000010000;
+    reg[Registers.R_COND.val()] =  ConditionFlags.FL_ZRO.val();
+    brOp(test_instruction1);
+    try std.testing.expectEqual(@as(u16, 0b000010000), reg[Registers.R_PC.val()]);
+}
+
 
 pub fn main() void {
     // const PC_START = 0x3000;
