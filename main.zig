@@ -85,12 +85,11 @@ test "resetRegisters" {
     try std.testing.expectEqualSlices(u16, expected_empty[0..], reg[0..]);
 }
 
-fn updateFlags(result_register: Registers) void {
-    const result_register_index = result_register.val();
+fn updateFlags(result_register: u16) void {
     const r_cond_index = Registers.R_COND.val();
-    if (reg[result_register_index] == 0) {
+    if (reg[result_register] == 0) {
         reg[r_cond_index] = ConditionFlags.FL_ZRO.val();
-    } else if (reg[result_register_index] >> 15 == 1) {
+    } else if (reg[result_register] >> 15 == 1) {
         reg[r_cond_index] = ConditionFlags.FL_NEG.val();
     } else {
         reg[r_cond_index] = ConditionFlags.FL_POS.val();
@@ -102,7 +101,7 @@ test "updateFlags" {
     const expected = [_]u16{0} ** 10;
     try std.testing.expectEqualSlices(u16, expected[0..], reg[0..]);
     reg[Registers.R_R0.val()] = signExtend(@bitCast(u16, @as(i16, -1)), 1);
-    updateFlags(Registers.R_R0);
+    updateFlags(Registers.R_R0.val());
     try std.testing.expectEqual(reg[Registers.R_COND.val()], ConditionFlags.FL_NEG.val());
 }
 
@@ -115,11 +114,15 @@ fn addOp(instruction: u16) void {
         const sum: u16 = reg[first_operand_register] + reg[second_operand_register];
         reg[destination_register] = sum;
     } else {
-        // imm mode
-        const imm_operand: u16 = instruction & 0b11111;
+        // Since in immediate mode, we directly get the value to commit
+        // the add operation against but we only get 5 bits. We should
+        // extend the sign (Two's complement) if we're going to
+        // convert that value to 16 bits.
+        const imm_operand: u16 = signExtend(instruction & 0b11111, 5);
         const sum: u16 = reg[first_operand_register] + imm_operand;
         reg[destination_register] = sum;
     }
+    updateFlags(destination_register);
 }
 
 test "addOp" {
@@ -131,6 +134,7 @@ test "addOp" {
     addOp(instruction_one);
     const expected_one = [_]u16{13, 8, 5};
     try std.testing.expectEqualSlices(u16, expected_one[0..], reg[0..3]);
+    try std.testing.expectEqual(reg[Registers.R_COND.val()], ConditionFlags.FL_POS.val());
 
     resetRegisters();
     reg[4] = 50;
@@ -140,6 +144,16 @@ test "addOp" {
     addOp(instruction_two);
     const expected_two = [_]u16{50, 0, 32, 82};
     try std.testing.expectEqualSlices(u16, expected_two[0..], reg[4..8]);
+    try std.testing.expectEqual(reg[Registers.R_COND.val()], ConditionFlags.FL_POS.val());
+
+    resetRegisters();
+    reg[5] = 41;
+    // Adds -5 in immediate mode
+    const instruction_three: u16 = 0b0001000011110101;
+    addOp(instruction_three);
+    const expected_three = [_]u16{65525, 0, 0, 0, 0, 41};
+    try std.testing.expectEqualSlices(u16, expected_three[0..], reg[0..6]);
+    try std.testing.expectEqual(reg[Registers.R_COND.val()], ConditionFlags.FL_NEG.val());
 }
 
 pub fn main() void {
