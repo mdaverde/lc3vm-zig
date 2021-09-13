@@ -238,13 +238,31 @@ test "jmpOp" {
 }
 
 fn jsrOp(instr: u16) void {
-    mem.reg[Registers.R7.val()] = mem.reg[Registers.PC.val()];
+    const current_pc = mem.reg[Registers.PC.val()];
+    mem.reg[Registers.R7.val()] = current_pc;
     const offset_mode = instr >> 11 & 1;
     if (offset_mode == 0) {
         const base_register = instr >> 6 & 0x7;
         mem.reg[Registers.PC.val()] = mem.reg[base_register];
     } else {
-
-
+        const pc_offset11 = instr & 0x7FF;
+        mem.reg[Registers.PC.val()] = current_pc + signExtend(pc_offset11, 11);
     }
+}
+
+test "jsrOp" {
+    resetRegisters();
+
+    mem.reg[Registers.R3.val()] = 22222;
+    const test_instruction1 = 0b0100000011000000;
+    jsrOp(test_instruction1);
+    try std.testing.expectEqual(@as(u16, 22222), mem.reg[Registers.PC.val()]);
+
+    resetRegisters();
+
+    mem.reg[Registers.PC.val()] = 80;
+    const test_instruction2 = 0b0100100000001111;
+    jsrOp(test_instruction2);
+    try std.testing.expectEqual(@as(u16, 80), mem.reg[Registers.R7.val()]);
+    try std.testing.expectEqual(@as(u16, 95), mem.reg[Registers.PC.val()]);
 }
