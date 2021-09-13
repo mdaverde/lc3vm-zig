@@ -41,36 +41,18 @@ test "signExtend" {
     try std.testing.expectEqual(signExtend(neg_eight_u16, 4), 0xFFF8);
 }
 
-fn resetRegisters() void {
-    var i: usize = 0;
-    while (i < mem.reg.len) {
-        mem.reg[i] = 0;
-        i += 1;
-    }
-}
-
-test "resetRegisters" {
-    mem.reg[0] = 10;
-    const expected_empty = [_]u16{0} ** mem.reg.len;
-    const expected_with_change = [_]u16{10, 0, 0};
-    try std.testing.expectEqualSlices(u16, expected_with_change[0..], mem.reg[0..3]);
-    resetRegisters();
-    try std.testing.expectEqualSlices(u16, expected_empty[0..], mem.reg[0..]);
-}
-
-fn updateFlags(result_register: u16) void {
-    const r_cond_index = Registers.COND.val();
-    if (mem.reg[result_register] == 0) {
-        mem.reg[r_cond_index] = ConditionFlags.ZRO.val();
-    } else if  (mem.reg[result_register] >> 15 == 1) {
-        mem.reg[r_cond_index] = ConditionFlags.NEG.val();
+fn updateFlags(register: u16) void {
+    if (mem.reg[register] == 0) {
+        mem.reg[Registers.COND.val()] = ConditionFlags.ZRO.val();
+    } else if  (mem.reg[register] >> 15 == 1) {
+        mem.reg[Registers.COND.val()] = ConditionFlags.NEG.val();
     } else {
-        mem.reg[r_cond_index] = ConditionFlags.POS.val();
+        mem.reg[Registers.COND.val()] = ConditionFlags.POS.val();
     }
 }
 
 test "updateFlags" {
-    resetRegisters();
+    mem.clearMemory();
     const expected = [_]u16{0} ** 10;
     try std.testing.expectEqualSlices(u16, expected[0..], mem.reg[0..]);
     mem.reg[Registers.R0.val()] = signExtend(@bitCast(u16, @as(i16, -1)), 1);
@@ -78,12 +60,12 @@ test "updateFlags" {
     try std.testing.expectEqual(mem.reg[Registers.COND.val()], ConditionFlags.NEG.val());
 }
 
-fn addOp(instruction: u16) void {
-    const destination_register: u16 = (instruction >> 9) & 0b111;
-    const first_operand_register: u16 = (instruction >> 6) & 0b111;
-    const imm_mode: u16 = (instruction >> 5) & 1;
+fn addOp(instr: u16) void {
+    const destination_register: u16 = (instr >> 9) & 0b111;
+    const first_operand_register: u16 = (instr >> 6) & 0b111;
+    const imm_mode: u16 = (instr >> 5) & 1;
     if (imm_mode == 0) {
-        const second_operand_register: u16 = instruction & 0b111;
+        const second_operand_register: u16 = instr & 0b111;
         const sum: u16 = mem.reg[first_operand_register] + mem.reg[second_operand_register];
         mem.reg[destination_register] = sum;
     } else {
@@ -91,7 +73,7 @@ fn addOp(instruction: u16) void {
         // the add operation against but we only get 5 bits. We should
         // extend the sign (Two's complement) if we're going to
         // convert that value to 16 bits.
-        const imm_operand: u16 = signExtend(instruction & 0b11111, 5);
+        const imm_operand: u16 = signExtend(instr & 0b11111, 5);
         const sum: u16 = mem.reg[first_operand_register] + imm_operand;
         mem.reg[destination_register] = sum;
     }
@@ -99,7 +81,7 @@ fn addOp(instruction: u16) void {
 }
 
 test "addOp" {
-    resetRegisters();
+    mem.clearMemory();
     mem.reg[1] = 8;
     mem.reg[2] = 5;
     // Add these 2 registers and save to register 0
@@ -109,7 +91,7 @@ test "addOp" {
     try std.testing.expectEqualSlices(u16, expected_one[0..], mem.reg[0..3]);
     try std.testing.expectEqual(mem.reg[Registers.COND.val()], ConditionFlags.POS.val());
 
-    resetRegisters();
+    mem.clearMemory();
     mem.reg[4] = 50;
     mem.reg[6] = 32;
     // Save the sum to register 7
@@ -119,7 +101,7 @@ test "addOp" {
     try std.testing.expectEqualSlices(u16, expected_two[0..], mem.reg[4..8]);
     try std.testing.expectEqual (mem.reg[Registers.COND.val()], ConditionFlags.POS.val());
 
-    resetRegisters();
+    mem.clearMemory();
     mem.reg[5] = 41;
     // Adds -5 in immediate mode
     const instruction_three: u16 = 0b0001000011110101;
@@ -129,39 +111,37 @@ test "addOp" {
     try std.testing.expectEqual (mem.reg[Registers.COND.val()], ConditionFlags.NEG.val());
 }
 
-// TBD
-fn memRead(addr: u16) u16 {
-    return addr;
-}
 
-fn ldiOp(instruction: u16) void {
-    const destination_register = instruction >> 9 & 0b111;
-    const pc_offset9: u16 = signExtend(instruction & 0x1FF, 9);
+fn ldiOp(instr: u16) void {
+    const destination_register = instr >> 9 & 0b111;
+    const pc_offset9: u16 = signExtend(instr & 0x1FF, 9);
     const pc: u16 = mem.reg[Registers.PC.val()];
-    mem.reg[destination_register] = memRead(memRead(pc_offset9 + pc));
+    mem.reg[destination_register] = mem.fetch(mem.fetch(pc_offset9 + pc));
     updateFlags(destination_register);
 }
 
 test "ldiOp" {
-    resetRegisters();
+    mem.clearMemory();
 
     // LDI op to register 3 from pc_offset9 010010010
+    mem.memory[147] = 91;
+    mem.memory[146] = 147;
     const instruction_one = 0b1010011010010010;
     ldiOp(instruction_one);
-    try std.testing.expectEqual(@as(u16, 0b010010010), mem.reg[Registers.R3.val()]);
+    try std.testing.expectEqual(@as(u16, 91), mem.reg[Registers.R3.val()]);
 }
 
-fn andOp(instruction: u16) void {
-    const destination_register = instruction >> 9 & 0b111;
-    const source_register_1 = instruction >> 6 & 0b111;
-    const imm_mode = instruction >> 5 & 1;
+fn andOp(instr: u16) void {
+    const destination_register = instr >> 9 & 0b111;
+    const source_register_1 = instr >> 6 & 0b111;
+    const imm_mode = instr >> 5 & 1;
 
     if (imm_mode == 0) {
-        const source_register_2 = instruction & 0b111;
+        const source_register_2 = instr & 0b111;
         mem.reg[destination_register] = mem.reg[source_register_1] & mem.reg[source_register_2];
     } else {
         // imm_mode
-        const imm_value = signExtend(instruction & 0x1F, 5);
+        const imm_value = signExtend(instr & 0x1F, 5);
         mem.reg[destination_register] = mem.reg[source_register_1] & imm_value;
     }
 
@@ -169,7 +149,7 @@ fn andOp(instruction: u16) void {
 }
 
 test "andOp" {
-    resetRegisters();
+    mem.clearMemory();
 
     // mem.reg 3 = mem.reg 2 AND mem.reg 1
     const test_instruction1 = 0b0101011010000001;
@@ -178,7 +158,7 @@ test "andOp" {
     andOp(test_instruction1);
     try std.testing.expectEqual(@as(u16, 0b010), mem.reg[Registers.R3.val()]);
 
-    resetRegisters();
+    mem.clearMemory();
     // mem.reg 0 = mem.reg 1 AND 10101;
     const test_instruction2 = 0b0101000001110101;
     mem.reg[Registers.R1.val()] = 60000;
@@ -203,7 +183,7 @@ fn brOp(instr: u16) void {
 }
 
 test "brOp" {
-    resetRegisters();
+    mem.clearMemory();
 
     const test_instruction1 = 0b0000010000010000;
     mem.reg[Registers.COND.val()] =  ConditionFlags.ZRO.val();
@@ -230,7 +210,7 @@ fn retOp() void {
 }
 
 test "jmpOp" {
-    resetRegisters();
+    mem.clearMemory();
     mem.reg[Registers.R3.val()] = 0b0000111100000000;
     const test_instruction1 = 0b1100000011000000;
     jmpOp(test_instruction1);
@@ -251,18 +231,32 @@ fn jsrOp(instr: u16) void {
 }
 
 test "jsrOp" {
-    resetRegisters();
+    mem.clearMemory();
 
     mem.reg[Registers.R3.val()] = 22222;
     const test_instruction1 = 0b0100000011000000;
     jsrOp(test_instruction1);
     try std.testing.expectEqual(@as(u16, 22222), mem.reg[Registers.PC.val()]);
 
-    resetRegisters();
+    mem.clearMemory();
 
     mem.reg[Registers.PC.val()] = 80;
     const test_instruction2 = 0b0100100000001111;
     jsrOp(test_instruction2);
     try std.testing.expectEqual(@as(u16, 80), mem.reg[Registers.R7.val()]);
     try std.testing.expectEqual(@as(u16, 95), mem.reg[Registers.PC.val()]);
+}
+
+fn ldOp(instr: u16) void {
+    const destination_register = instr >> 9 & 0x7;
+    const pc_offset9 = instr & 0xFF;
+    const current_pc = mem.reg[Registers.PC.val()];
+    mem.reg[destination_register] = mem.fetch(current_pc + signExtend(pc_offset9));
+    updateFlags(destination_register);
+}
+
+test "ldOp" {
+    mem.clearMemory();
+
+    // const test_instruction1 = 0b0010100000001111;
 }
