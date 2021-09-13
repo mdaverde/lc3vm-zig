@@ -29,6 +29,13 @@ $ zig version
 $ zig build
 ```
 
+### Testing
+
+```shell
+$ zig test ./test.zig
+All 9 tests passed.
+```
+
 ## References
 
 For original inspiration, see [lc3-vm](https://github.com/justinmeiners/lc3-vm)
