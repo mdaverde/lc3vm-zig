@@ -5,22 +5,22 @@ const Registers = mem.Registers;
 const ConditionFlags = mem.ConditionFlags;
 
 const Opcodes = enum(u16) {
-    OP_BR,   // branch
-    OP_ADD,  // add
-    OP_LD,   // load
-    OP_ST,   // store
-    OP_JSR,  // jump register
-    OP_AND,  // bitwise and
-    OP_LDR,  // load register
-    OP_STR,  // store register
-    OP_RTI,  // unused
-    OP_NOT,  // bitwise not
-    OP_LDR,  // load indirect
-    OP_STI,  // store indirect
-    OP_JMP,  // jump
-    OP_RES,  // reserved (unused)
-    OP_LEA,  // load effective address
-    OP_TRAP, // execute trap
+    BR,   // branch
+    ADD,  // add
+    LD,   // load
+    ST,   // store
+    JSR,  // jump register
+    AND,  // bitwise and
+    LDR,  // load register
+    STR,  // store register
+    RTI,  // unused
+    NOT,  // bitwise not
+    LDR,  // load indirect
+    STI,  // store indirect
+    JMP,  // jump
+    RES,  // reserved (unused)
+    LEA,  // load effective address
+    TRAP, // execute trap
 };
 
 fn signExtend(x: u16, bit_count: u4) u16 {
@@ -59,13 +59,13 @@ test "resetRegisters" {
 }
 
 fn updateFlags(result_register: u16) void {
-    const r_cond_index = Registers.R_COND.val();
+    const r_cond_index = Registers.COND.val();
     if (mem.reg[result_register] == 0) {
-        mem.reg[r_cond_index] = ConditionFlags.FL_ZRO.val();
+        mem.reg[r_cond_index] = ConditionFlags.ZRO.val();
     } else if  (mem.reg[result_register] >> 15 == 1) {
-        mem.reg[r_cond_index] = ConditionFlags.FL_NEG.val();
+        mem.reg[r_cond_index] = ConditionFlags.NEG.val();
     } else {
-        mem.reg[r_cond_index] = ConditionFlags.FL_POS.val();
+        mem.reg[r_cond_index] = ConditionFlags.POS.val();
     }
 }
 
@@ -73,9 +73,9 @@ test "updateFlags" {
     resetRegisters();
     const expected = [_]u16{0} ** 10;
     try std.testing.expectEqualSlices(u16, expected[0..], mem.reg[0..]);
-    mem.reg[Registers.R_R0.val()] = signExtend(@bitCast(u16, @as(i16, -1)), 1);
-    updateFlags(Registers.R_R0.val());
-    try std.testing.expectEqual(mem.reg[Registers.R_COND.val()], ConditionFlags.FL_NEG.val());
+    mem.reg[Registers.R0.val()] = signExtend(@bitCast(u16, @as(i16, -1)), 1);
+    updateFlags(Registers.R0.val());
+    try std.testing.expectEqual(mem.reg[Registers.COND.val()], ConditionFlags.NEG.val());
 }
 
 fn addOp(instruction: u16) void {
@@ -107,7 +107,7 @@ test "addOp" {
     addOp(instruction_one);
     const expected_one = [_]u16{13, 8, 5};
     try std.testing.expectEqualSlices(u16, expected_one[0..], mem.reg[0..3]);
-    try std.testing.expectEqual(mem.reg[Registers.R_COND.val()], ConditionFlags.FL_POS.val());
+    try std.testing.expectEqual(mem.reg[Registers.COND.val()], ConditionFlags.POS.val());
 
     resetRegisters();
     mem.reg[4] = 50;
@@ -117,7 +117,7 @@ test "addOp" {
     addOp(instruction_two);
     const expected_two = [_]u16{50, 0, 32, 82};
     try std.testing.expectEqualSlices(u16, expected_two[0..], mem.reg[4..8]);
-    try std.testing.expectEqual (mem.reg[Registers.R_COND.val()], ConditionFlags.FL_POS.val());
+    try std.testing.expectEqual (mem.reg[Registers.COND.val()], ConditionFlags.POS.val());
 
     resetRegisters();
     mem.reg[5] = 41;
@@ -126,7 +126,7 @@ test "addOp" {
     addOp(instruction_three);
     const expected_three = [_]u16{65525, 0, 0, 0, 0, 41};
     try std.testing.expectEqualSlices(u16, expected_three[0..], mem.reg[0..6]);
-    try std.testing.expectEqual (mem.reg[Registers.R_COND.val()], ConditionFlags.FL_NEG.val());
+    try std.testing.expectEqual (mem.reg[Registers.COND.val()], ConditionFlags.NEG.val());
 }
 
 // TBD
@@ -137,7 +137,7 @@ fn memRead(addr: u16) u16 {
 fn ldiOp(instruction: u16) void {
     const destination_register = instruction >> 9 & 0b111;
     const pc_offset9: u16 = signExtend(instruction & 0x1FF, 9);
-    const pc: u16 = mem.reg[Registers.R_PC.val()];
+    const pc: u16 = mem.reg[Registers.PC.val()];
     mem.reg[destination_register] = memRead(memRead(pc_offset9 + pc));
     updateFlags(destination_register);
 }
@@ -148,7 +148,7 @@ test "ldiOp" {
     // LDI op to register 3 from pc_offset9 010010010
     const instruction_one = 0b1010011010010010;
     ldiOp(instruction_one);
-    try std.testing.expectEqual(@as(u16, 0b010010010), mem.reg[Registers.R_R3.val()]);
+    try std.testing.expectEqual(@as(u16, 0b010010010), mem.reg[Registers.R3.val()]);
 }
 
 fn andOp(instruction: u16) void {
@@ -173,32 +173,32 @@ test "andOp" {
 
     // mem.reg 3 = mem.reg 2 AND mem.reg 1
     const test_instruction1 = 0b0101011010000001;
-    mem.reg[Registers.R_R2.val()] = 0b011;
-    mem.reg[Registers.R_R1.val()] = 0b110;
+    mem.reg[Registers.R2.val()] = 0b011;
+    mem.reg[Registers.R1.val()] = 0b110;
     andOp(test_instruction1);
-    try std.testing.expectEqual(@as(u16, 0b010), mem.reg[Registers.R_R3.val()]);
+    try std.testing.expectEqual(@as(u16, 0b010), mem.reg[Registers.R3.val()]);
 
     resetRegisters();
     // mem.reg 0 = mem.reg 1 AND 10101;
     const test_instruction2 = 0b0101000001110101;
-    mem.reg[Registers.R_R1.val()] = 60000;
+    mem.reg[Registers.R1.val()] = 60000;
     andOp(test_instruction2);
-    try std.testing.expectEqual(@as(u16, 0b1110101001100000), mem.reg[Registers.R_R0.val()]);
+    try std.testing.expectEqual(@as(u16, 0b1110101001100000), mem.reg[Registers.R0.val()]);
 }
 
 fn brOp(instr: u16) void {
     const negative_conditional = instr >> 11 & 1;
     const zero_conditional = instr >> 10 & 1;
     const positive_conditional = instr >> 9 & 1;
-    const last_instruction_flag = mem.reg[Registers.R_COND.val()];
+    const last_instruction_flag = mem.reg[Registers.COND.val()];
 
-    const is_negative = (negative_conditional == 1) and (last_instruction_flag == ConditionFlags.FL_NEG.val());
-    const is_zero = (zero_conditional == 1) and (last_instruction_flag == ConditionFlags.FL_ZRO.val());
-    const is_positive = (positive_conditional == 1) and (last_instruction_flag == ConditionFlags.FL_POS.val());
+    const is_negative = (negative_conditional == 1) and (last_instruction_flag == ConditionFlags.NEG.val());
+    const is_zero = (zero_conditional == 1) and (last_instruction_flag == ConditionFlags.ZRO.val());
+    const is_positive = (positive_conditional == 1) and (last_instruction_flag == ConditionFlags.POS.val());
 
     if (is_negative or is_zero or is_positive) {
         const pc_offset9 = instr & 0x1FF;
-        mem.reg[Registers.R_PC.val()] = mem.reg[Registers.R_PC.val()] + signExtend(pc_offset9, 9);
+        mem.reg[Registers.PC.val()] = mem.reg[Registers.PC.val()] + signExtend(pc_offset9, 9);
     }
 }
 
@@ -206,9 +206,9 @@ test "brOp" {
     resetRegisters();
 
     const test_instruction1 = 0b0000010000010000;
-    mem.reg[Registers.R_COND.val()] =  ConditionFlags.FL_ZRO.val();
+    mem.reg[Registers.COND.val()] =  ConditionFlags.ZRO.val();
     brOp(test_instruction1);
-    try std.testing.expectEqual(@as(u16, 0b000010000), mem.reg[Registers.R_PC.val()]);
+    try std.testing.expectEqual(@as(u16, 0b000010000), mem.reg[Registers.PC.val()]);
 }
 
 fn rtiOp(_: u16) void {
@@ -221,7 +221,7 @@ fn resOp(_: u16) void {
 
 fn jmpOp(instr: u16) void {
     const base_register = instr >> 6 & 0b111;
-    mem.reg[Registers.R_PC.val()] = mem.reg[base_register];
+    mem.reg[Registers.PC.val()] = mem.reg[base_register];
 }
 
 // special case of jmp
@@ -231,12 +231,20 @@ fn retOp() void {
 
 test "jmpOp" {
     resetRegisters();
-    mem.reg[Registers.R_R3.val()] = 0b0000111100000000;
+    mem.reg[Registers.R3.val()] = 0b0000111100000000;
     const test_instruction1 = 0b1100000011000000;
     jmpOp(test_instruction1);
-    try std.testing.expectEqual(@as(u16, 0b0000111100000000), mem.reg[Registers.R_PC.val()]);
+    try std.testing.expectEqual(@as(u16, 0b0000111100000000), mem.reg[Registers.PC.val()]);
 }
 
-fn jsrOp() void {
+fn jsrOp(instr: u16) void {
+    mem.reg[Registers.R7.val()] = mem.reg[Registers.PC.val()];
+    const offset_mode = instr >> 11 & 1;
+    if (offset_mode == 0) {
+        const base_register = instr >> 6 & 0x7;
+        mem.reg[Registers.PC.val()] = mem.reg[base_register];
+    } else {
 
+
+    }
 }
