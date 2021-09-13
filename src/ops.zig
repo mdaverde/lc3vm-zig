@@ -263,3 +263,21 @@ test "ldOp" {
     ldOp(test_instruction1);
     try std.testing.expectEqual(@as(u16, 151), mem.reg[Registers.R4.val()]);
 }
+
+fn ldrOp(instr: u16) void {
+    const destination_register = instr >> 9 & 0x7;
+    const base_register = instr >> 6 & 0x7;
+    const offset6 = signExtend(instr & 0x3F, 6);
+    mem.reg[destination_register] = mem.fetch(mem.reg[base_register] + offset6);
+    updateFlags(destination_register);
+}
+
+test "ldrOp" {
+    mem.clearMemory();
+
+    mem.memory[32118] = 6;
+    mem.reg[Registers.R3.val()] = 32100;
+    const test_instruction1 = 0b0110101011010010;
+    ldrOp(test_instruction1);
+    try std.testing.expectEqual(@as(u16, 6), mem.reg[Registers.R5.val()]);
+}
