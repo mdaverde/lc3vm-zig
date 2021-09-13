@@ -251,12 +251,15 @@ fn ldOp(instr: u16) void {
     const destination_register = instr >> 9 & 0x7;
     const pc_offset9 = instr & 0xFF;
     const current_pc = mem.reg[Registers.PC.val()];
-    mem.reg[destination_register] = mem.fetch(current_pc + signExtend(pc_offset9));
+    mem.reg[destination_register] = mem.fetch(current_pc + signExtend(pc_offset9, 9));
     updateFlags(destination_register);
 }
 
 test "ldOp" {
     mem.clearMemory();
 
-    // const test_instruction1 = 0b0010100000001111;
+    mem.memory[15] = 151;
+    const test_instruction1 = 0b0010100000001111;
+    ldOp(test_instruction1);
+    try std.testing.expectEqual(@as(u16, 151), mem.reg[Registers.R4.val()]);
 }

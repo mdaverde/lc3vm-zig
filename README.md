@@ -33,7 +33,7 @@ $ zig build
 
 ```shell
 $ zig test ./test.zig
-All 9 tests passed.
+All tests passed.
 ```
 
 ## References
