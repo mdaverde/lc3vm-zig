@@ -300,3 +300,23 @@ test "trapOp" {
 pub fn stOp() void {
 
 }
+
+fn assert_instr_fn(comptime instr_fn: anytype) void {
+    // try std.testing.expect(@typeInfo(instr_fn).Fn.args.len == 1);
+    // try std.testing.expect(@typeInfo(instr_fn).Fn.args[0].arg_type.? == u16);
+    try std.testing.expectEqual(@typeInfo(@TypeOf(instr_fn)), @typeInfo(@TypeOf(trapOp)));
+}
+
+comptime {
+    assert_instr_fn(addOp);
+    assert_instr_fn(brOp);
+    assert_instr_fn(ldOp);
+    assert_instr_fn(jsrOp);
+    assert_instr_fn(andOp);
+    assert_instr_fn(ldrOp);
+    assert_instr_fn(rtiOp);
+    assert_instr_fn(ldiOp);
+    assert_instr_fn(jmpOp);
+    assert_instr_fn(resOp);
+    assert_instr_fn(trapOp);
+}
