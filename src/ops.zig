@@ -4,7 +4,7 @@ const mem = @import("./mem.zig");
 const Registers = mem.Registers;
 const ConditionFlags = mem.ConditionFlags;
 
-const Opcodes = enum(u16) {
+pub const Opcodes = enum(u16) {
     BR,   // branch
     ADD,  // add
     LD,   // load
@@ -15,12 +15,16 @@ const Opcodes = enum(u16) {
     STR,  // store register
     RTI,  // unused
     NOT,  // bitwise not
-    LDR,  // load indirect
+    LDI,  // load indirect
     STI,  // store indirect
     JMP,  // jump
     RES,  // reserved (unused)
     LEA,  // load effective address
     TRAP, // execute trap
+
+    pub fn val(self: Opcodes) u16 {
+        return @enumToInt(self);
+    }
 };
 
 fn signExtend(x: u16, bit_count: u4) u16 {
