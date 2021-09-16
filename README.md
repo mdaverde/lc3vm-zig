@@ -1,4 +1,4 @@
-# lc3vm-zig
+# LC3vm-zig
 
 Written entirely in Zig, this project implements a virtual machine for LC-3 programs, an educational ISA.
 
