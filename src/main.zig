@@ -16,7 +16,7 @@ pub fn main() void {
 
     while (running)  {
         const current_pc = mem.reg[PC] + 1;
-        const instr = mem.fetch(current_pc);
+        const instr = mem.read(current_pc);
         mem.reg[PC] = current_pc;
 
         const op: u16 = instr >> 12;
@@ -24,18 +24,18 @@ pub fn main() void {
             OpCodes.ADD.val() => ops.addOp(instr),
             OpCodes.BR.val() => ops.brOp(instr),
             OpCodes.LD.val() => ops.ldOp(instr),
-            // OpCodes.ST.val() => ops.stOp(instr),
+            OpCodes.ST.val() => ops.stOp(instr),
             OpCodes.JSR.val() => ops.jsrOp(instr),
             OpCodes.AND.val() => ops.andOp(instr),
             OpCodes.LDR.val() => ops.ldrOp(instr),
-            // OpCodes.STR.val() => ops.strOp(instr),
+            OpCodes.STR.val() => ops.strOp(instr),
             OpCodes.RTI.val() => ops.rtiOp(instr),
-            // OpCodes.NOT.val() => ops.notOp(instr),
+            OpCodes.NOT.val() => ops.notOp(instr),
             OpCodes.LDI.val() => ops.ldiOp(instr),
-            // OpCodes.STI.val() => ops.stiOp(instr),
+            OpCodes.STI.val() => ops.stiOp(instr),
             OpCodes.JMP.val() => ops.jmpOp(instr),
             OpCodes.RES.val() => ops.resOp(instr),
-            // OpCodes.LEA.val() => ops.leaOp(instr),
+            OpCodes.LEA.val() => ops.leaOp(instr),
             OpCodes.TRAP.val() => ops.trapOp(instr),
             else => std.os.abort(),
         }

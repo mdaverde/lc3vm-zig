@@ -56,6 +56,10 @@ test "clearMemory" {
     try std.testing.expectEqualSlices(u16, expected_empty[0..], reg[0..]);
 }
 
-pub fn fetch(addr: u16) u16 {
+pub fn read(addr: u16) u16 {
     return memory[addr];
+}
+
+pub fn write(addr: u16, val: u16) void {
+    memory[addr] = val;
 }

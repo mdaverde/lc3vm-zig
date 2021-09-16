@@ -27,7 +27,7 @@ pub const Opcodes = enum(u16) {
     }
 };
 
-fn signExtend(x: u16, bit_count: u4) u16 {
+fn signExtend(x: u16, comptime bit_count: u4) u16 {
     var a = x;
     if ((a >> (bit_count - 1)) & 1 == 1) {
         a |= (@intCast(u16, 0xFFFF) << bit_count);
@@ -120,7 +120,7 @@ pub fn ldiOp(instr: u16) void {
     const destination_register = instr >> 9 & 0b111;
     const pc_offset9: u16 = signExtend(instr & 0x1FF, 9);
     const pc: u16 = mem.reg[Registers.PC.val()];
-    mem.reg[destination_register] = mem.fetch(mem.fetch(pc_offset9 + pc));
+    mem.reg[destination_register] = mem.read(mem.read(pc_offset9 + pc));
     updateFlags(destination_register);
 }
 
@@ -255,7 +255,7 @@ pub fn ldOp(instr: u16) void {
     const destination_register = instr >> 9 & 0x7;
     const pc_offset9 = instr & 0xFF;
     const current_pc = mem.reg[Registers.PC.val()];
-    mem.reg[destination_register] = mem.fetch(current_pc + signExtend(pc_offset9, 9));
+    mem.reg[destination_register] = mem.read(current_pc + signExtend(pc_offset9, 9));
     updateFlags(destination_register);
 }
 
@@ -272,7 +272,7 @@ pub fn ldrOp(instr: u16) void {
     const destination_register = instr >> 9 & 0x7;
     const base_register = instr >> 6 & 0x7;
     const offset6 = signExtend(instr & 0x3F, 6);
-    mem.reg[destination_register] = mem.fetch(mem.reg[base_register] + offset6);
+    mem.reg[destination_register] = mem.read(mem.reg[base_register] + offset6);
     updateFlags(destination_register);
 }
 
@@ -289,17 +289,66 @@ test "ldrOp" {
 pub fn trapOp(instr: u16) void {
     mem.reg[Registers.R7.val()] = mem.reg[Registers.PC.val()];
     const trap_vector = instr & 0xFF;
-    const start_address = mem.fetch(trap_vector);
+    const start_address = mem.read(trap_vector);
     mem.reg[Registers.PC.val()] = start_address;
 }
 
-test "trapOp" {
+// TODO
+test "trapOp" {}
 
+pub fn stOp(instr: u16) void {
+    const source_register = instr >> 9 & 0x7;
+    const pc_offset9 = instr & 0x1FF;
+    const current_pc = mem.reg[Registers.PC.val()];
+    mem.write(current_pc + signExtend(pc_offset9, 9), mem.reg[source_register]);
 }
 
-pub fn stOp() void {
+// TODO
+test "stOp" {}
 
+pub fn stiOp(instr: u16) void {
+    const source_register = instr >> 8 & 0x7;
+    const pc_offset9 = instr & 0x1FF;
+    const current_pc = mem.reg[Registers.PC.val()];
+    mem.write(mem.read(current_pc + signExtend(pc_offset9, 9)), source_register);
 }
+
+// TODO
+test "stiOp" {}
+
+pub fn strOp(instr: u16) void {
+    const source_register = instr >> 9 & 0x7;
+    const base_register = instr >> 6 & 0x7;
+    const offset6 = instr & 0x3F;
+    const base_value = mem.reg[base_register];
+    const source_value = mem.reg[source_register];
+    mem.write(base_value + signExtend(offset6, 6), source_value);
+}
+
+// TODO
+test "strOp" {}
+
+pub fn leaOp(instr: u16) void {
+    const destination_register = instr >> 9 & 0x7;
+    const pc_offset9 = instr & 0x1FF;
+    const current_pc = mem.reg[Registers.PC.val()];
+    mem.reg[destination_register] = current_pc + signExtend(pc_offset9, 9);
+    updateFlags(destination_register);
+}
+
+// TODO
+test "leaOp" {}
+
+pub fn notOp(instr: u16) void {
+    const destination_register = instr >> 9 & 0x7;
+    const source_register = instr >> 6 & 0x7;
+    const source_value = mem.reg[source_register];
+    mem.reg[destination_register] = ~source_value;
+    updateFlags(destination_register);
+}
+
+// TODO
+test "notOp" {}
 
 fn assert_instr_fn(comptime instr_fn: anytype) void {
     // try std.testing.expect(@typeInfo(instr_fn).Fn.args.len == 1);
@@ -319,4 +368,9 @@ comptime {
     assert_instr_fn(jmpOp);
     assert_instr_fn(resOp);
     assert_instr_fn(trapOp);
+    assert_instr_fn(stOp);
+    assert_instr_fn(stiOp);
+    assert_instr_fn(strOp);
+    assert_instr_fn(leaOp);
+    assert_instr_fn(notOp);
 }
