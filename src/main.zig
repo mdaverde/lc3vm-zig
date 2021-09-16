@@ -7,12 +7,27 @@ const OpCodes = ops.Opcodes;
 
 const PC = Registers.PC.val();
 
-pub fn main() void {
+pub fn main() !void {
+    const args = std.process.args();
+    var posix_args = args.inner;
+    if (posix_args.count < 2) {
+        std.debug.print("USAGE: lc3vm image-file\n", .{});
+        std.os.exit(1);
+    }
+    _ = posix_args.next() orelse std.os.exit(1);
+    // TODO: need to handle absolute
+    const image_file_relative = posix_args.next() orelse std.os.exit(1);
+
+    const current_dir = std.fs.cwd();
+    const open_flags = std.fs.File.OpenFlags { .read = true };
+    const image_file = try current_dir.openFile(image_file_relative, open_flags);
+    defer image_file.close();
+
     // Start of memory is reserved for trap routines
     const PC_START = 0x3000;
     mem.reg[PC] = PC_START;
 
-    const running = true;
+    const running = false;
 
     while (running)  {
         const current_pc = mem.reg[PC] + 1;

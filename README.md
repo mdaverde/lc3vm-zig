@@ -1,6 +1,8 @@
 # LC3vm-zig
 
-Written entirely in Zig, this project implements a virtual machine for LC-3 programs, an educational ISA.
+Written entirely in Zig, this project implements a virtual machine for LC-3 programs.
+
+Note: because Zig isn't stable yet and this project was based off a source code build off master (version below), this might be broken against your version of Zig. I'll be using this project as an excuse to keep up to date with the language so hopefully fixes will be merged when I get to it.
 
 ## About LC-3
 
@@ -27,6 +29,13 @@ $ zig version
 
 ```shell
 $ zig build
+$ ./zig-out/bin/lc3vm imagefile.obj
+```
+
+### Running from source
+
+```
+$ zig run ./src/main.zig -- imagefile.obj
 ```
 
 ### Testing
@@ -39,6 +48,12 @@ All tests passed.
 ## References
 
 For original inspiration, see [lc3-vm](https://github.com/justinmeiners/lc3-vm)
+
+## Could be cool to add
+
+Full blown simulation debugging tools might be too much but could also be kinda fun
+
+Windows support and macOS testing
 
 ## License
 
