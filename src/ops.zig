@@ -285,3 +285,18 @@ test "ldrOp" {
     ldrOp(test_instruction1);
     try std.testing.expectEqual(@as(u16, 6), mem.reg[Registers.R5.val()]);
 }
+
+pub fn trapOp(instr: u16) void {
+    mem.reg[Registers.R7.val()] = mem.reg[Registers.PC.val()];
+    const trap_vector = instr & 0xFF;
+    const start_address = mem.fetch(trap_vector);
+    mem.reg[Registers.PC.val()] = start_address;
+}
+
+test "trapOp" {
+
+}
+
+pub fn stOp() void {
+
+}
