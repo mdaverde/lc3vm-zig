@@ -60,7 +60,7 @@ test "updateFlags" {
     try std.testing.expectEqual(mem.reg[Registers.COND.val()], ConditionFlags.NEG.val());
 }
 
-fn addOp(instr: u16) void {
+pub fn addOp(instr: u16) void {
     const destination_register: u16 = (instr >> 9) & 0b111;
     const first_operand_register: u16 = (instr >> 6) & 0b111;
     const imm_mode: u16 = (instr >> 5) & 1;
@@ -112,7 +112,7 @@ test "addOp" {
 }
 
 
-fn ldiOp(instr: u16) void {
+pub fn ldiOp(instr: u16) void {
     const destination_register = instr >> 9 & 0b111;
     const pc_offset9: u16 = signExtend(instr & 0x1FF, 9);
     const pc: u16 = mem.reg[Registers.PC.val()];
@@ -131,7 +131,7 @@ test "ldiOp" {
     try std.testing.expectEqual(@as(u16, 91), mem.reg[Registers.R3.val()]);
 }
 
-fn andOp(instr: u16) void {
+pub fn andOp(instr: u16) void {
     const destination_register = instr >> 9 & 0b111;
     const source_register_1 = instr >> 6 & 0b111;
     const imm_mode = instr >> 5 & 1;
@@ -166,7 +166,7 @@ test "andOp" {
     try std.testing.expectEqual(@as(u16, 0b1110101001100000), mem.reg[Registers.R0.val()]);
 }
 
-fn brOp(instr: u16) void {
+pub fn brOp(instr: u16) void {
     const negative_conditional = instr >> 11 & 1;
     const zero_conditional = instr >> 10 & 1;
     const positive_conditional = instr >> 9 & 1;
@@ -191,21 +191,21 @@ test "brOp" {
     try std.testing.expectEqual(@as(u16, 0b000010000), mem.reg[Registers.PC.val()]);
 }
 
-fn rtiOp(_: u16) void {
+pub fn rtiOp(_: u16) void {
     std.os.abort();
 }
 
-fn resOp(_: u16) void {
+pub fn resOp(_: u16) void {
     std.os.abort();
 }
 
-fn jmpOp(instr: u16) void {
+pub fn jmpOp(instr: u16) void {
     const base_register = instr >> 6 & 0b111;
     mem.reg[Registers.PC.val()] = mem.reg[base_register];
 }
 
 // special case of jmp
-fn retOp() void {
+pub fn retOp() void {
     jmpOp(0b0000000111000000);
 }
 
@@ -217,7 +217,7 @@ test "jmpOp" {
     try std.testing.expectEqual(@as(u16, 0b0000111100000000), mem.reg[Registers.PC.val()]);
 }
 
-fn jsrOp(instr: u16) void {
+pub fn jsrOp(instr: u16) void {
     const current_pc = mem.reg[Registers.PC.val()];
     mem.reg[Registers.R7.val()] = current_pc;
     const offset_mode = instr >> 11 & 1;
@@ -247,7 +247,7 @@ test "jsrOp" {
     try std.testing.expectEqual(@as(u16, 95), mem.reg[Registers.PC.val()]);
 }
 
-fn ldOp(instr: u16) void {
+pub fn ldOp(instr: u16) void {
     const destination_register = instr >> 9 & 0x7;
     const pc_offset9 = instr & 0xFF;
     const current_pc = mem.reg[Registers.PC.val()];
@@ -264,7 +264,7 @@ test "ldOp" {
     try std.testing.expectEqual(@as(u16, 151), mem.reg[Registers.R4.val()]);
 }
 
-fn ldrOp(instr: u16) void {
+pub fn ldrOp(instr: u16) void {
     const destination_register = instr >> 9 & 0x7;
     const base_register = instr >> 6 & 0x7;
     const offset6 = signExtend(instr & 0x3F, 6);
