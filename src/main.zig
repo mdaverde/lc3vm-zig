@@ -23,6 +23,25 @@ pub fn main() !void {
     const image_file = try current_dir.openFile(image_file_relative, open_flags);
     defer image_file.close();
 
+    const reader = std.fs.File.reader(image_file);
+    const u16_max = std.math.maxInt(u16);
+    const origin = try reader.readIntBig(u16);
+
+    // Works for now
+    var mem_instr_index = origin;
+    reading: while (mem_instr_index < u16_max) {
+        mem.memory[mem_instr_index] = reader.readIntBig(u16) catch |err| {
+            switch (err) {
+                error.EndOfStream => break :reading,
+                else => std.os.abort(),
+            }
+        };
+        mem_instr_index += 1;
+    }
+
+
+    // const origin = reader.readBytesNoEof(std.math.maxInt(u16));
+
     // Start of memory is reserved for trap routines
     const PC_START = 0x3000;
     mem.reg[PC] = PC_START;
