@@ -1,5 +1,6 @@
 const std = @import("std");
 const mem = @import("./mem.zig");
+const traps = @import("./traps.zig");
 
 const Registers = mem.Registers;
 const ConditionFlags = mem.ConditionFlags;
@@ -288,12 +289,14 @@ test "ldrOp" {
 }
 
 pub fn trapOp(instr: u16) void {
-    mem.reg[Registers.R7.val()] = mem.reg[Registers.PC.val()];
     const trap_vector = instr & 0xFF;
-    const start_address = mem.read(trap_vector);
-    mem.reg[Registers.PC.val()] = start_address;
-    // run
-    mem.reg[Registers.PC.val()] = mem.reg[Registers.R7.val()];
+    traps.run(trap_vector);
+    // mem.reg[Registers.R7.val()] = mem.reg[Registers.PC.val()];
+    // const trap_vector = instr & 0xFF;
+    // const start_address = mem.read(trap_vector);
+    // mem.reg[Registers.PC.val()] = start_address;
+    // // run
+    // mem.reg[Registers.PC.val()] = mem.reg[Registers.R7.val()];
 }
 
 // TODO
