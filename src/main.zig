@@ -39,21 +39,23 @@ pub fn main() !void {
         mem_instr_index += 1;
     }
 
-
-    // const origin = reader.readBytesNoEof(std.math.maxInt(u16));
-
     // Start of memory is reserved for trap routines
-    const PC_START = 0x3000;
+    const PC_START = origin;
     mem.reg[PC] = PC_START;
 
-    const running = false;
+    const running = true;
+
+    std.debug.print("start {b}\n", .{ mem.reg[PC] });
 
     while (running)  {
-        const current_pc = mem.reg[PC] + 1;
-        const instr = mem.read(current_pc);
-        mem.reg[PC] = current_pc;
+        const current_pc = mem.reg[PC];
+        const instr: u16 = mem.read(current_pc);
+        mem.reg[PC] = current_pc + 1;
 
         const op: u16 = instr >> 12;
+
+        // std.debug.print("pc: {d} op: {b} instr: {b} \n", .{ current_pc, op, instr });
+
         switch (op) {
             OpCodes.ADD.val() => ops.addOp(instr),
             OpCodes.BR.val() => ops.brOp(instr),

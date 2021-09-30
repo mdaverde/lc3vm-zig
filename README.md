@@ -18,7 +18,7 @@ The specification for the ISA can be found [here](https://justinmeiners.github.i
 
 ### Dependencies
 
-Development was done using the, at the time, latest master branch of [Zig](https://github.com/ziglang/zig) on a Linux x86_64 machine.
+Development was done using, at the time, the latest master branch of [Zig](https://github.com/ziglang/zig) on a Linux x86_64 machine.
 
 ```shell
 $ zig version
@@ -29,13 +29,13 @@ $ zig version
 
 ```shell
 $ zig build
-$ ./zig-out/bin/lc3vm imagefile.obj
+$ ./zig-out/bin/lc3vm lc3program.obj
 ```
 
 ### Running from source
 
 ```
-$ zig run ./src/main.zig -- imagefile.obj
+$ zig run ./src/main.zig -- lc3program.obj
 ```
 
 ### Testing

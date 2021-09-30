@@ -71,7 +71,8 @@ pub fn addOp(instr: u16) void {
     const imm_mode: u16 = (instr >> 5) & 1;
     if (imm_mode == 0) {
         const second_operand_register: u16 = instr & 0b111;
-        const sum: u16 = mem.reg[first_operand_register] + mem.reg[second_operand_register];
+        var sum: u16 = undefined;
+        _ = @addWithOverflow(u16, mem.reg[first_operand_register], mem.reg[second_operand_register], &sum);
         mem.reg[destination_register] = sum;
     } else {
         // Since in immediate mode, we directly get the value to commit
@@ -184,7 +185,9 @@ pub fn brOp(instr: u16) void {
 
     if (is_negative or is_zero or is_positive) {
         const pc_offset9 = instr & 0x1FF;
-        mem.reg[Registers.PC.val()] = mem.reg[Registers.PC.val()] + signExtend(pc_offset9, 9);
+        var sum: u16 = undefined;
+        _ = @addWithOverflow(u16, mem.reg[Registers.PC.val()], signExtend(pc_offset9, 9), &sum);
+        mem.reg[Registers.PC.val()] = sum;
     }
 }
 
@@ -232,7 +235,9 @@ pub fn jsrOp(instr: u16) void {
         mem.reg[Registers.PC.val()] = mem.reg[base_register];
     } else {
         const pc_offset11 = instr & 0x7FF;
-        mem.reg[Registers.PC.val()] = current_pc + signExtend(pc_offset11, 11);
+        var sum: u16 = undefined;
+        _ = @addWithOverflow(u16, current_pc, signExtend(pc_offset11, 11), &sum);
+        mem.reg[Registers.PC.val()] = sum;
     }
 }
 
@@ -306,7 +311,9 @@ pub fn stOp(instr: u16) void {
     const source_register = instr >> 9 & 0x7;
     const pc_offset9 = instr & 0x1FF;
     const current_pc = mem.reg[Registers.PC.val()];
-    mem.write(current_pc + signExtend(pc_offset9, 9), mem.reg[source_register]);
+    var sum: u16 = undefined;
+    _ = @addWithOverflow(u16, current_pc, signExtend(pc_offset9, 9), &sum);
+    mem.write(sum, mem.reg[source_register]);
 }
 
 // TODO
