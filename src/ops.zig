@@ -5,22 +5,22 @@ const Registers = mem.Registers;
 const ConditionFlags = mem.ConditionFlags;
 
 pub const Opcodes = enum(u16) {
-    BR,   // branch
-    ADD,  // add
-    LD,   // load
-    ST,   // store
-    JSR,  // jump register
-    AND,  // bitwise and
-    LDR,  // load register
-    STR,  // store register
-    RTI,  // unused
-    NOT,  // bitwise not
-    LDI,  // load indirect
-    STI,  // store indirect
-    JMP,  // jump
-    RES,  // reserved (unused)
-    LEA,  // load effective address
-    TRAP, // execute trap
+    BR,   // 0: branch
+    ADD,  // 1: add
+    LD,   // 10: load
+    ST,   // 11: store
+    JSR,  // 100: jump register
+    AND,  // 101: bitwise and
+    LDR,  // 110: load register
+    STR,  // 111: store register
+    RTI,  // 1000: unused
+    NOT,  // 1001: bitwise not
+    LDI,  // 1010: load indirect
+    STI,  // 1011: store indirect
+    JMP,  // 1100: jump
+    RES,  // 1101: reserved (unused)
+    LEA,  // 1110: load effective address
+    TRAP, // 1111: execute trap
 
     pub fn val(self: Opcodes) u16 {
         return @enumToInt(self);
@@ -78,7 +78,8 @@ pub fn addOp(instr: u16) void {
         // extend the sign (Two's complement) if we're going to
         // convert that value to 16 bits.
         const imm_operand: u16 = signExtend(instr & 0b11111, 5);
-        const sum: u16 = mem.reg[first_operand_register] + imm_operand;
+        var sum: u16 = undefined;
+        _ = @addWithOverflow(u16, mem.reg[first_operand_register], imm_operand, &sum);
         mem.reg[destination_register] = sum;
     }
     updateFlags(destination_register);
@@ -291,6 +292,8 @@ pub fn trapOp(instr: u16) void {
     const trap_vector = instr & 0xFF;
     const start_address = mem.read(trap_vector);
     mem.reg[Registers.PC.val()] = start_address;
+    // run
+    mem.reg[Registers.PC.val()] = mem.reg[Registers.R7.val()];
 }
 
 // TODO
@@ -319,10 +322,12 @@ test "stiOp" {}
 pub fn strOp(instr: u16) void {
     const source_register = instr >> 9 & 0x7;
     const base_register = instr >> 6 & 0x7;
-    const offset6 = instr & 0x3F;
     const base_value = mem.reg[base_register];
     const source_value = mem.reg[source_register];
-    mem.write(base_value + signExtend(offset6, 6), source_value);
+    const offset6 = instr & 0x3F;
+    var sum: u16 = undefined;
+    _ = @addWithOverflow(u16, base_value, signExtend(offset6, 6), &sum);
+    mem.write(sum, source_value);
 }
 
 // TODO
