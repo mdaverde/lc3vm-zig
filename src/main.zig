@@ -1,11 +1,29 @@
 const std = @import("std");
 const ops = @import("./ops.zig");
 const mem = @import("./mem.zig");
+const c = @cImport({
+    @cInclude("termios.h");
+});
 
 const Registers = mem.Registers;
 const OpCodes = ops.Opcodes;
 
 const PC = Registers.PC.val();
+
+var original_tio: c.termios = undefined;
+
+fn disableInputBuffering() void {
+    const stdin_fd = std.os.linux.STDIN_FILENO;
+    _ = c.tcgetattr(stdin_fd, &original_tio);
+    var new_tio: c.termios = original_tio;
+    new_tio.c_lflag &= @bitCast(c_uint, ~c.ICANON & ~c.ECHO);
+    _ = c.tcsetattr(stdin_fd, c.TCSANOW, &new_tio);
+}
+
+fn restoreInputBuffering() void {
+    const stdin_fd = std.os.linux.STDIN_FILENO;
+    _ = c.tcsetattr(stdin_fd, c.TCSANOW, &original_tio);
+}
 
 pub fn main() !void {
     const args = std.process.args();
@@ -45,7 +63,9 @@ pub fn main() !void {
 
     const running = true;
 
-    std.debug.print("start {b}\n", .{ mem.reg[PC] });
+    // std.debug.print("start {b}\n", .{ mem.reg[PC] });
+
+    disableInputBuffering();
 
     while (running)  {
         const current_pc = mem.reg[PC];
